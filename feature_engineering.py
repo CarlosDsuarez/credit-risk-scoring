@@ -34,6 +34,7 @@ def compute_financial_ratios(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Solvency
+    # ASSUMPTION: ebitda.abs() used so negative-EBITDA firms produce a positive ratio (magnitude-based).
     d['debt_to_ebitda']    = d['total_debt'] / (d['ebitda'].abs() + eps)
     d['debt_to_assets']    = d['total_debt'] / (total_assets + eps)
     d['interest_coverage'] = d['ebitda'] / (d['interest_expense'] + eps)
@@ -53,6 +54,8 @@ def compute_financial_ratios(df: pd.DataFrame) -> pd.DataFrame:
     d['asset_turnover']         = d['annual_revenue'] / (total_assets + eps)
     d['days_receivable']        = d['accounts_receivable'] / (daily_revenue + eps)
     d['days_payable']           = d['accounts_payable'] / (daily_revenue + eps)
+    # ASSUMPTION: CCC simplified to DSO - DPO; Days Inventory Outstanding omitted (inventory
+    #             is captured separately via quick_ratio and cash_ratio).
     d['cash_conversion_cycle']  = d['days_receivable'] - d['days_payable']
 
     # Credit quality
@@ -96,6 +99,11 @@ def preprocess_features(
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(d.values.astype(float))
     else:
+        if scaler is None:
+            raise ValueError(
+                "A fitted scaler must be provided when fit_scaler=False. "
+                "Pass the scaler returned from the training call."
+            )
         X_scaled = scaler.transform(d.values.astype(float))
 
     X = pd.DataFrame(X_scaled, columns=feature_names, index=df.index)

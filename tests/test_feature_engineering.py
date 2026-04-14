@@ -24,10 +24,11 @@ def test_compute_ratios_adds_all_ratio_cols(raw_df):
         assert col in df.columns, f"Missing ratio column: {col}"
 
 
-def test_no_inf_after_ratios(raw_df):
+def test_no_inf_or_nan_after_ratios(raw_df):
     df = compute_financial_ratios(raw_df)
     for col in RATIO_COLS:
         assert not np.isinf(df[col]).any(), f"Inf in {col}"
+        assert not df[col].isna().any(), f"NaN in {col}"
 
 
 def test_winsorize_clips_to_p1_p99(raw_df):
@@ -56,6 +57,10 @@ def test_scaler_fit_only_on_train_no_leakage(raw_df):
     X_train, scaler, feature_names = preprocess_features(train, RATIO_COLS, fit_scaler=True)
     X_test, _, _ = preprocess_features(test, RATIO_COLS, scaler=scaler, fit_scaler=False)
     assert X_test.shape[0] == 60
+    # Scaler fit on train only — test set means should NOT be zero
+    ratio_cols_in_features = [f for f in feature_names if f in RATIO_COLS]
+    test_means = X_test[ratio_cols_in_features].mean().abs()
+    assert test_means.mean() > 0.01, "Test set means unexpectedly close to zero — possible leakage"
 
 
 def test_compute_vif_returns_dataframe(raw_df):
