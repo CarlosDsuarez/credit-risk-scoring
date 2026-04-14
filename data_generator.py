@@ -11,6 +11,8 @@ def generate_synthetic_data(n_obs: int = 800, default_rate: float = 0.08, seed: 
     # total_assets_approx = current_assets + 0.5 * annual_revenue (used downstream in ratios).
     # ASSUMPTION: default rate is calibrated to ~8% via the intercept term (-3.0).
     """
+    # NOTE: `default_rate` parameter is kept for API compatibility but does not dynamically
+    #       control the actual rate. Actual rate (~8%) is determined by the logistic intercept.
     rng = np.random.default_rng(seed)
     industries = ['Technology', 'Manufacturing', 'Retail', 'Healthcare', 'Energy']
 
@@ -22,6 +24,8 @@ def generate_synthetic_data(n_obs: int = 800, default_rate: float = 0.08, seed: 
     # --- Debt & interest ---
     # ASSUMPTION: Debt/EBITDA drawn from lognormal(1.1, 0.5) -> median ~3x
     debt_ebitda_ratio = rng.lognormal(mean=1.1, sigma=0.5, size=n_obs)
+    # ASSUMPTION: total_debt uses abs(ebitda) for the ~3% of rows where ebitda < 0.
+    # This treats debt_ebitda_ratio as a magnitude ratio regardless of EBITDA sign.
     total_debt = np.maximum(np.abs(ebitda) * debt_ebitda_ratio, 0.0)
     interest_rate = rng.uniform(0.04, 0.08, size=n_obs)
     interest_expense = total_debt * interest_rate
