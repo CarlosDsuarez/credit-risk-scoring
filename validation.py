@@ -13,6 +13,11 @@ import matplotlib.pyplot as plt
 
 def compute_discrimination_metrics(y_true: np.ndarray, y_pred_proba: np.ndarray) -> dict:
     """AUC-ROC, Gini, K-S, Concentration Ratio (top 20%), Brier Score."""
+    if len(np.unique(y_true)) < 2:
+        raise ValueError(
+            "y_true must contain both classes (0 and 1). "
+            f"Got unique values: {np.unique(y_true)}"
+        )
     auc  = roc_auc_score(y_true, y_pred_proba)
     gini = 2.0 * auc - 1.0
 
@@ -53,20 +58,22 @@ def hosmer_lemeshow_test(
         expected=('p', 'sum'),
         n=('y', 'count'),
     )
-    exp_safe     = np.maximum(grouped['expected'], 1e-6)
-    non_exp_safe = np.maximum(grouped['n'] - grouped['expected'], 1e-6)
+    exp_safe    = np.maximum(grouped['expected'], 1e-6)
+    non_exp     = grouped['n'] - grouped['expected']
+    non_exp_safe = np.maximum(non_exp, 1e-6)
     chi2 = (
         (grouped['observed'] - grouped['expected']) ** 2 / exp_safe
-        + (grouped['n'] - grouped['observed'] - non_exp_safe) ** 2 / non_exp_safe
+        + (grouped['n'] - grouped['observed'] - non_exp) ** 2 / non_exp_safe
     ).sum()
     dof     = max(len(grouped) - 2, 1)
     p_value = float(1.0 - stats.chi2.cdf(chi2, dof))
 
     return {
-        'hl_chi2':      float(chi2),
-        'hl_df':        dof,
-        'hl_p_value':   p_value,
-        'decile_table': grouped,
+        'hl_chi2':        float(chi2),
+        'hl_df':          dof,
+        'hl_p_value':     p_value,
+        'n_groups_actual': len(grouped),
+        'decile_table':   grouped,
     }
 
 

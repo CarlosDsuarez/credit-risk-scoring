@@ -64,3 +64,17 @@ def test_calibration_slope_is_float(mock_predictions):
     y_true, y_pred = mock_predictions
     slope = compute_calibration_slope(y_true, y_pred)
     assert isinstance(slope, float)
+
+
+def test_discrimination_raises_on_single_class():
+    y_true = np.zeros(100, dtype=int)
+    y_pred = np.random.default_rng(42).uniform(0, 1, 100)
+    with pytest.raises(ValueError, match="must contain both classes"):
+        compute_discrimination_metrics(y_true, y_pred)
+
+
+def test_hl_n_groups_actual_in_result(mock_predictions):
+    y_true, y_pred = mock_predictions
+    result = hosmer_lemeshow_test(y_true, y_pred)
+    assert 'n_groups_actual' in result
+    assert 1 <= result['n_groups_actual'] <= 10
