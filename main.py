@@ -26,7 +26,7 @@ from validation import (
 from risk_categories import (
     compute_thresholds, assign_risk_categories, validate_categories, get_risk_categories_dict,
 )
-from stress_testing import univariate_sensitivity, recession_scenario, industry_cliff_risk
+from stress_testing import recession_scenario, industry_cliff_risk
 from report import print_validation_report
 
 OUTPUT_DIR = 'outputs'
@@ -106,7 +106,6 @@ def run_pipeline() -> dict:
     # ── 8. Stress testing ─────────────────────────────────────────
     print('[8/8] Running stress tests...')
     X_median     = np.zeros(len(feature_names))  # 0 = median in standardized space
-    sensitivity  = univariate_sensitivity(model, feature_names, X_median)
     rec_result   = recession_scenario(df_train, model, scaler, feature_names, t25, t75)
     cliff_df     = industry_cliff_risk(df_orig_test, cats_test)
 
