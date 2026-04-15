@@ -105,7 +105,6 @@ def run_pipeline() -> dict:
 
     # ── 8. Stress testing ─────────────────────────────────────────
     print('[8/8] Running stress tests...')
-    X_median     = np.zeros(len(feature_names))  # 0 = median in standardized space
     rec_result   = recession_scenario(df_train, model, scaler, feature_names, t25, t75)
     cliff_df     = industry_cliff_risk(df_orig_test, cats_test)
 
