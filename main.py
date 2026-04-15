@@ -47,7 +47,6 @@ def run_pipeline() -> dict:
     # ── 2. Feature engineering ────────────────────────────────────
     print('[2/8] Computing financial ratios and preprocessing...')
     df_ratios = compute_financial_ratios(df)
-    df_ratios = winsorize_ratios(df_ratios, RATIO_COLS)
 
     # ── 3. Stratified train/test split ───────────────────────────
     print('[3/8] Splitting train/test (70/30 stratified)...')
@@ -58,6 +57,16 @@ def run_pipeline() -> dict:
     df_train     = df_ratios.iloc[train_idx].reset_index(drop=True)
     df_test      = df_ratios.iloc[test_idx].reset_index(drop=True)
     df_orig_test = df.iloc[test_idx].reset_index(drop=True)
+
+    # Winsorize using TRAIN bounds only — apply same bounds to TEST (no leakage)
+    df_train = winsorize_ratios(df_train, RATIO_COLS)
+    winsorize_bounds = {
+        col: (df_train[col].quantile(0.01), df_train[col].quantile(0.99))
+        for col in RATIO_COLS if col in df_train.columns
+    }
+    for col, (lo, hi) in winsorize_bounds.items():
+        if col in df_test.columns:
+            df_test[col] = df_test[col].clip(lower=lo, upper=hi)
 
     y_train = df_train['default_indicator'].values
     y_test  = df_test['default_indicator'].values
@@ -128,10 +137,7 @@ def run_pipeline() -> dict:
     print('Pipeline complete.\n')
 
     # Build model_artifacts for predict.py
-    winsorize_bounds = {
-        col: (df_train[col].quantile(0.01), df_train[col].quantile(0.99))
-        for col in RATIO_COLS if col in df_train.columns
-    }
+    # winsorize_bounds computed earlier from training set (no leakage)
     return {
         'model':            model,
         'scaler':           scaler,
